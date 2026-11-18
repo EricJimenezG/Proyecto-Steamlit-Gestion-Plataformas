@@ -1,52 +1,47 @@
-"""
-Practica de bases de datos y predicciones con Streamlit, SQLite.
-Eric Alberto Jimenez Garcia
-Grupo: 71371
+import pandas as pd
+import streamlit as st
+from conexion import BASES, crear_todas, get_connection
 
-Conexión a las 4 bases SQLite para usar en Streamlit.
+st.set_page_config(
+    page_title="Proyecto Final | CRUD y Predicciones",
+    page_icon="📊",
+    layout="wide",
+)
 
-Uso en app.py:
-    import streamlit as st, pandas as pd
-    from db import get_connection
+# Asegura que los 4 archivos .db existan desde el inicio
+crear_todas()
 
-    con = get_connection("mercado_libre")
-    df = pd.read_sql("SELECT * FROM usuarios", con)
-    st.dataframe(df)
-"""
-import sqlite3
-from pathlib import Path
+st.title("📊 Sistema Integral de Gestión (CRUD) y Analítica Predictiva")
+st.markdown(
+    "**Alumno:** Eric Alberto Jimenez Garcia | **Grupo:** 71371  \n"
+    "Selecciona cualquiera de las 4 bases de datos relacionales en el **menú lateral izquierdo** "
+    "para operar su módulo CRUD y ejecutar simulaciones con Machine Learning."
+)
 
-CARPETA = Path(__file__).parent
+st.divider()
+st.subheader("Estado de las Bases de Datos SQLite")
 
-BASES = {
-    "captacion_clientes":     "01_captacion_clientes.sql",
-    "mercado_libre":          "02_mercado_libre.sql",
-    "elearning_cursos":       "03_elearning_cursos.sql",
-    "ventas_nivel_republica": "04_ventas_nivel_republica.sql",
-}
+cols = st.columns(4)
 
+resumen_bases = [
+    ("captacion_clientes", "1. Captación de Clientes", "prospectos", cols[0]),
+    ("mercado_libre", "2. Mercado Libre", "publicaciones", cols[1]),
+    ("elearning_cursos", "3. E-Learning Cursos", "cursos", cols[2]),
+    ("ventas_nivel_republica", "4. Ventas República", "ventas", cols[3]),
+]
 
-def get_connection(nombre: str) -> sqlite3.Connection:
-    """Abre la base (la crea desde su .sql si el .db no existe)."""
-    if nombre not in BASES:
-        raise ValueError(f"Base desconocida: {nombre}. Opciones: {list(BASES)}")
-    ruta = CARPETA / f"{nombre}.db"
-    nueva = not ruta.exists()
-    con = sqlite3.connect(ruta, check_same_thread=False)  # necesario con Streamlit
-    con.execute("PRAGMA foreign_keys = ON;")               # activar llaves foráneas
-    con.row_factory = sqlite3.Row
-    if nueva:
-        con.executescript((CARPETA / BASES[nombre]).read_text(encoding="utf-8"))
-        con.commit()
-    return con
+for db_key, titulo, tabla_principal, col in resumen_bases:
+    con = get_connection(db_key)
+    total_tablas = pd.read_sql(
+        "SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+        con,
+    )["n"][0]
+    total_registros = pd.read_sql(f"SELECT COUNT(*) AS n FROM {tabla_principal}", con)["n"][0]
+    con.close()
 
+    with col:
+        with st.container(border=True):
+            st.markdown(f"### {titulo}")
+            st.metric("Tablas relacionales", total_tablas)
+            st.metric(f"Registros en `{tabla_principal}`", total_registros)
 
-def crear_todas():
-    """Crea los 4 archivos .db si no existen."""
-    for nombre in BASES:
-        get_connection(nombre).close()
-
-
-if __name__ == "__main__":
-    crear_todas()
-    print("Bases listas:", ", ".join(BASES))
