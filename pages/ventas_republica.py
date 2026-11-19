@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from conexion import get_connection
 from datos_demo import agregar_registros_demo
-from interfaz import render_sidebar
+from interfaz import render_kpi_cards, render_page_header, render_sidebar
 
 st.set_page_config(page_title="Ventas República | Predicciones", page_icon="🇲🇽", layout="wide")
 render_sidebar("Ventas República", "Gestiona ventas y productos, y proyecta los montos de venta.")
@@ -123,7 +123,10 @@ inicializar_datos_demo()
 if agregar_registros_demo("ventas_nivel_republica"):
     st.cache_data.clear()
 
-st.title("🇲🇽 Ventas a Nivel República: Gestión Comercial y Proyección de Ingresos")
+render_page_header(
+    "🇲🇽 Ventas a Nivel República",
+    "Explora el desempeño comercial por región y proyecta montos de venta.",
+)
 
 tab_ventas, tab_productos, tab_pred = st.tabs(
     ["📋 Ventas", "📦 Productos", "🤖 Predicción de Monto de Venta"]
@@ -184,21 +187,26 @@ with tab_ventas:
     ticket_prom = float(df_comp["Total_MXN"].mean()) if not df_comp.empty else 0.0
     articulos_tot = int(df_comp["Artículos"].sum()) if not df_comp.empty else 0
 
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Ventas Completadas", num_ventas)
-    k2.metric("Ingresos Totales", f"${ingresos_tot:,.2f}")
-    k3.metric("Ticket Promedio", f"${ticket_prom:,.2f}")
-    k4.metric("Unidades Despachadas", f"{articulos_tot} u.")
+    render_kpi_cards(
+        [
+            ("Ventas completadas", num_ventas),
+            ("Ingresos totales", f"${ingresos_tot:,.2f}"),
+            ("Ticket promedio", f"${ticket_prom:,.2f}"),
+            ("Unidades despachadas", f"{articulos_tot} u."),
+        ]
+    )
 
     # --- Gráficas por Zona y Método de Pago ---
     if not df_comp.empty:
         g1, g2 = st.columns(2)
         with g1:
-            st.caption("Ingresos Totales por Zona Geográfica (MXN)")
-            st.bar_chart(df_comp.groupby("Zona")["Total_MXN"].sum(), height=220)
+            with st.container(border=True):
+                st.markdown("#### Ingresos por zona (MXN)")
+                st.bar_chart(df_comp.groupby("Zona")["Total_MXN"].sum(), height=220)
         with g2:
-            st.caption("Operaciones por Método de Pago")
-            st.bar_chart(df_comp["Método_Pago"].value_counts(), height=220)
+            with st.container(border=True):
+                st.markdown("#### Operaciones por método de pago")
+                st.bar_chart(df_comp["Método_Pago"].value_counts(), height=220)
 
     # --- Tabla Principal (READ) + Descarga CSV ---
     st.subheader("Registro Histórico de Ventas")
@@ -472,7 +480,7 @@ with tab_pred:
         modelo.fit(X, y)
 
         col_sim, col_res = st.columns(2)
-        with col_sim:
+        with col_sim, st.container(border=True):
             st.markdown("#### Parámetros de la Operación")
             in_zona = st.selectbox("Zona geográfica de la República", le_zona.classes_)
             in_metodo = st.selectbox("Método de pago esperado", le_metodo.classes_)
@@ -481,7 +489,7 @@ with tab_pred:
 
             btn_predecir = st.button("Proyectar Monto de Venta", type="primary", use_container_width=True)
 
-        with col_res:
+        with col_res, st.container(border=True):
             st.markdown("#### Resultado de la Proyección")
             if btn_predecir:
                 X_nuevo = pd.DataFrame(

@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from conexion import get_connection
 from datos_demo import agregar_registros_demo
-from interfaz import render_sidebar
+from interfaz import render_kpi_cards, render_page_header, render_sidebar
 
 st.set_page_config(page_title="E-Learning | Predicciones", page_icon="🎓", layout="wide")
 render_sidebar("E-Learning", "Administra cursos y usuarios, y analiza el riesgo de deserción.")
@@ -93,7 +93,10 @@ inicializar_datos_demo()
 if agregar_registros_demo("elearning_cursos"):
     st.cache_data.clear()
 
-st.title("🎓 Plataforma E-Learning: Gestión Integral y Analítica Predictiva")
+render_page_header(
+    "🎓 Plataforma E-Learning",
+    "Consulta el avance de los cursos y detecta patrones asociados a la deserción.",
+)
 
 tab_cursos, tab_usuarios, tab_pred = st.tabs(
     ["📋 Cursos", "👥 Usuarios (Instructores/Alumnos)", "🤖 Predicción de Deserción"]
@@ -147,21 +150,26 @@ with tab_cursos:
     )
     prog_global = float(df_insc_stats["progreso"].mean()) if total_insc > 0 else 0.0
 
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Cursos Publicados", cursos_pub)
-    k2.metric("Inscripciones Totales", total_insc)
-    k3.metric("Tasa de Deserción", f"{tasa_abandono:.1f}%")
-    k4.metric("Progreso Promedio", f"{prog_global:.1f}%")
+    render_kpi_cards(
+        [
+            ("Cursos publicados", cursos_pub),
+            ("Inscripciones", total_insc),
+            ("Tasa de deserción", f"{tasa_abandono:.1f}%"),
+            ("Progreso promedio", f"{prog_global:.1f}%"),
+        ]
+    )
 
     # --- Gráficas de Distribución ---
     if not df_cursos.empty and not df_insc_stats.empty:
         g1, g2 = st.columns(2)
         with g1:
-            st.caption("Cursos por Categoría")
-            st.bar_chart(df_cursos["Categoría"].value_counts(), height=220)
+            with st.container(border=True):
+                st.markdown("#### Cursos por categoría")
+                st.bar_chart(df_cursos["Categoría"].value_counts(), height=220)
         with g2:
-            st.caption("Estatus de Inscripciones Estudiantiles")
-            st.bar_chart(df_insc_stats["estatus"].value_counts(), height=220)
+            with st.container(border=True):
+                st.markdown("#### Estado de las inscripciones")
+                st.bar_chart(df_insc_stats["estatus"].value_counts(), height=220)
 
     # --- Tabla Principal (READ) + Descarga CSV ---
     st.subheader("Catálogo Actual de Cursos")
@@ -444,7 +452,7 @@ with tab_pred:
 
         col_sim, col_res = st.columns(2)
 
-        with col_sim:
+        with col_sim, st.container(border=True):
             st.markdown("#### Parámetros del Estudiante y Curso")
             in_progreso = st.slider("Progreso actual del alumno (%)", 0, 100, 25)
             in_precio = st.number_input("Precio del curso ($ MXN)", min_value=0.0, value=499.0, step=50.0)
@@ -453,7 +461,7 @@ with tab_pred:
 
             predecir = st.button("Calcular Riesgo de Deserción", type="primary", use_container_width=True)
 
-        with col_res:
+        with col_res, st.container(border=True):
             st.markdown("#### Resultado de la Predicción")
             if predecir:
                 nivel_num = le_nivel.transform([in_nivel])[0]

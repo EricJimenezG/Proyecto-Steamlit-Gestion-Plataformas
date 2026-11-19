@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from conexion import get_connection
 from datos_demo import agregar_registros_demo
-from interfaz import render_sidebar
+from interfaz import render_kpi_cards, render_page_header, render_sidebar
 
 st.set_page_config(page_title="Mercado Libre | Predicciones", page_icon="🛒", layout="wide")
 render_sidebar("Mercado Libre", "Administra publicaciones y vendedores, y consulta la predicción de demanda.")
@@ -104,7 +104,10 @@ inicializar_datos_demo()
 if agregar_registros_demo("mercado_libre"):
     st.cache_data.clear()
 
-st.title("🛒 Mercado Libre: Gestión Integral y Predicción de Demanda")
+render_page_header(
+    "🛒 Mercado Libre",
+    "Administra publicaciones y vendedores; explora indicadores y demanda estimada.",
+)
 
 tab_pub, tab_vend, tab_pred = st.tabs(
     ["📋 Publicaciones", "🏪 Vendedores", "🤖 Predicción de Demanda"]
@@ -153,21 +156,26 @@ with tab_pub:
     unidades_totales = int(df_pub["Unidades_Vendidas"].sum()) if not df_pub.empty else 0
     ingresos_totales = float((df_pub["Precio"] * df_pub["Unidades_Vendidas"]).sum()) if not df_pub.empty else 0.0
 
-    k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Publicaciones Activas", pub_activas)
-    k2.metric("Stock Total Disponible", f"{stock_total} u.")
-    k3.metric("Unidades Vendidas", f"{unidades_totales} u.")
-    k4.metric("Ingresos Históricos", f"${ingresos_totales:,.2f}")
+    render_kpi_cards(
+        [
+            ("Publicaciones activas", pub_activas),
+            ("Stock disponible", f"{stock_total} u."),
+            ("Unidades vendidas", f"{unidades_totales} u."),
+            ("Ingresos históricos", f"${ingresos_totales:,.2f}"),
+        ]
+    )
 
     # --- Gráficas de Distribución ---
     if not df_pub.empty:
         g1, g2 = st.columns(2)
         with g1:
-            st.caption("Publicaciones por Categoría")
-            st.bar_chart(df_pub["Categoría"].value_counts(), height=220)
+            with st.container(border=True):
+                st.markdown("#### Publicaciones por categoría")
+                st.bar_chart(df_pub["Categoría"].value_counts(), height=220)
         with g2:
-            st.caption("Publicaciones por Nivel de Exposición")
-            st.bar_chart(df_pub["Tipo"].value_counts(), height=220)
+            with st.container(border=True):
+                st.markdown("#### Nivel de exposición")
+                st.bar_chart(df_pub["Tipo"].value_counts(), height=220)
 
     # --- Tabla Principal (READ) + Descarga CSV ---
     st.subheader("Catálogo General de Publicaciones")
@@ -476,7 +484,7 @@ with tab_pred:
         modelo.fit(X, y)
 
         col_sim, col_res = st.columns(2)
-        with col_sim:
+        with col_sim, st.container(border=True):
             st.markdown("#### Parámetros de la Nueva Publicación")
             in_precio = st.number_input("Precio del producto ($ MXN)", min_value=50.0, value=799.0, step=50.0)
             in_cond = st.selectbox("Condición del artículo", le_cond.classes_)
@@ -486,7 +494,7 @@ with tab_pred:
 
             btn_predecir = st.button("Estimar Volumen de Ventas", type="primary", use_container_width=True)
 
-        with col_res:
+        with col_res, st.container(border=True):
             st.markdown("#### Proyección de Ventas")
             if btn_predecir:
                 X_nuevo = pd.DataFrame(

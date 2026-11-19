@@ -5,7 +5,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from conexion import get_connection
 from datos_demo import agregar_registros_demo
-from interfaz import render_sidebar
+from interfaz import render_kpi_cards, render_page_header, render_sidebar
 from reglas_negocio import sincronizar_cliente
 
 st.set_page_config(page_title="Captación de Clientes | Predicciones", page_icon="🎯", layout="wide")
@@ -88,7 +88,10 @@ inicializar_datos_demo()
 if agregar_registros_demo("captacion_clientes"):
     st.cache_data.clear()
 
-st.title("🎯 Captación de Clientes: Gestión Integral y Analítica Predictiva")
+render_page_header(
+    "🎯 Captación de Clientes",
+    "Da seguimiento al embudo comercial y analiza la conversión de prospectos.",
+)
 
 tab_prospectos, tab_asesores, tab_pred = st.tabs(
     ["📋 Prospectos", "👔 Asesores", "🤖 Predicción de Cierre"]
@@ -137,20 +140,25 @@ with tab_prospectos:
     total_conv = int((df_prospectos["Estatus"] == "convertido").sum()) if total_prosp > 0 else 0
     tasa_conv = (total_conv / total_prosp * 100) if total_prosp > 0 else 0.0
 
-    k1, k2, k3 = st.columns(3)
-    k1.metric("Total de Prospectos", total_prosp)
-    k2.metric("Clientes Convertidos", total_conv)
-    k3.metric("Tasa de Conversión", f"{tasa_conv:.1f}%")
+    render_kpi_cards(
+        [
+            ("Total de prospectos", total_prosp),
+            ("Clientes convertidos", total_conv),
+            ("Tasa de conversión", f"{tasa_conv:.1f}%"),
+        ]
+    )
 
     # --- Gráficas de Embudo y Canales ---
     if not df_prospectos.empty:
         g1, g2 = st.columns(2)
         with g1:
-            st.caption("Distribución por Estatus del Embudo")
-            st.bar_chart(df_prospectos["Estatus"].value_counts(), height=220)
+            with st.container(border=True):
+                st.markdown("#### Estatus del embudo")
+                st.bar_chart(df_prospectos["Estatus"].value_counts(), height=220)
         with g2:
-            st.caption("Prospectos por Canal de Captación")
-            st.bar_chart(df_prospectos["Canal"].value_counts(), height=220)
+            with st.container(border=True):
+                st.markdown("#### Captación por canal")
+                st.bar_chart(df_prospectos["Canal"].value_counts(), height=220)
 
     # --- Tabla Principal (READ) + Descarga CSV ---
     st.subheader("Listado General de Prospectos")
@@ -427,14 +435,14 @@ with tab_pred:
         modelo.fit(X, y)
 
         col_in, col_out = st.columns(2)
-        with col_in:
+        with col_in, st.container(border=True):
             st.markdown("#### Parámetros del Prospecto")
             canal_seleccionado = st.selectbox("Tipo de canal de captación:", encoder.classes_)
             asignar_asesor = st.checkbox("¿Tiene asesor comercial asignado?", value=True)
             proviene_campana = st.checkbox("¿Proviene de una campaña activa?", value=True)
             btn_pred = st.button("Predecir Probabilidad de Conversión", type="primary", use_container_width=True)
 
-        with col_out:
+        with col_out, st.container(border=True):
             st.markdown("#### Resultado de la Inferencia")
             if btn_pred:
                 input_encoded = encoder.transform([canal_seleccionado])[0]

@@ -2,7 +2,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 from conexion import BASES, crear_todas, get_connection
-from interfaz import render_sidebar
+from interfaz import render_kpi_cards, render_page_header, render_sidebar
 
 st.set_page_config(
     page_title="Proyecto Final | Predicciones",
@@ -29,26 +29,45 @@ with st.sidebar:
             st.success("Bases restauradas. Entra a cada módulo para regenerar sus datos demo.")
             st.rerun()
 
-st.title("📊 Sistema Integral de Gestión y Analítica Predictiva")
-st.markdown(
-    "**Alumno:** Eric Alberto Jimenez Garcia | **Grupo:** 71371  \n"
-    "Selecciona cualquiera de las 4 bases de datos relacionales en el **menú lateral izquierdo** "
-    "para administrar sus datos y ejecutar modelos de Machine Learning."
+render_page_header(
+    "📊 Centro de analítica",
+    "Administra y explora los datos de tus módulos de predicción.",
 )
-
-st.divider()
-st.subheader("Estado Actual de las Bases de Datos SQLite")
-
-cols = st.columns(4)
+st.caption("Alumno: Eric Alberto Jimenez Garcia · Grupo: 71371")
 
 resumen_bases = [
-    ("captacion_clientes", "1. Captación de Clientes", "prospectos", cols[0]),
-    ("mercado_libre", "2. Mercado Libre", "publicaciones", cols[1]),
-    ("elearning_cursos", "3. E-Learning Cursos", "cursos", cols[2]),
-    ("ventas_nivel_republica", "4. Ventas República", "ventas", cols[3]),
+    (
+        "captacion_clientes",
+        "🎯 Captación de Clientes",
+        "prospectos",
+        "Seguimiento del embudo comercial y estimación de conversiones.",
+        "pages/captacion_clientes.py",
+    ),
+    (
+        "mercado_libre",
+        "🛒 Mercado Libre",
+        "publicaciones",
+        "Gestión del catálogo y análisis de demanda de productos.",
+        "pages/mercado_libre.py",
+    ),
+    (
+        "elearning_cursos",
+        "🎓 E-Learning",
+        "cursos",
+        "Administración de cursos e indicadores de permanencia.",
+        "pages/elearning_cursos.py",
+    ),
+    (
+        "ventas_nivel_republica",
+        "🇲🇽 Ventas República",
+        "ventas",
+        "Resumen comercial y proyección de ingresos.",
+        "pages/ventas_republica.py",
+    ),
 ]
 
-for db_key, titulo, tabla_principal, col in resumen_bases:
+resumenes = []
+for db_key, titulo, tabla_principal, descripcion, pagina in resumen_bases:
     con = get_connection(db_key)
     total_tablas = pd.read_sql(
         "SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
@@ -56,9 +75,32 @@ for db_key, titulo, tabla_principal, col in resumen_bases:
     )["n"][0]
     total_registros = pd.read_sql(f"SELECT COUNT(*) AS n FROM {tabla_principal}", con)["n"][0]
     con.close()
+    resumenes.append((titulo, tabla_principal, total_tablas, total_registros, descripcion, pagina))
 
-    with col:
-        with st.container(border=True):
-            st.markdown(f"### {titulo}")
-            st.metric("Tablas relacionales", total_tablas)
-            st.metric(f"Registros en `{tabla_principal}`", total_registros)
+st.subheader("Vista general")
+render_kpi_cards(
+    [
+        ("Módulos", len(resumenes)),
+        ("Tablas relacionales", sum(resumen[2] for resumen in resumenes)),
+        ("Registros", f"{sum(resumen[3] for resumen in resumenes):,}"),
+    ]
+)
+
+st.subheader("Explora tus módulos")
+for inicio in range(0, len(resumenes), 2):
+    columnas = st.columns(2)
+    for columna, resumen in zip(columnas, resumenes[inicio : inicio + 2]):
+        titulo, tabla, total_tablas, total_registros, descripcion, pagina = resumen
+        with columna:
+            with st.container(border=True):
+                st.markdown(f"### {titulo}")
+                st.caption(descripcion)
+                metricas = st.columns(2)
+                metricas[0].metric("Tablas", total_tablas)
+                metricas[1].metric(f"Registros en {tabla}", total_registros)
+                st.page_link(
+                    pagina,
+                    label="Abrir módulo",
+                    icon=":material/arrow_forward:",
+                    width="stretch",
+                )
