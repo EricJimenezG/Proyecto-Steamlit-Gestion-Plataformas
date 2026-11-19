@@ -4,8 +4,10 @@ import streamlit as st
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from conexion import get_connection
+from interfaz import render_sidebar
 
-st.set_page_config(page_title="E-Learning | CRUD & Predicciones", page_icon="🎓", layout="wide")
+st.set_page_config(page_title="E-Learning | Predicciones", page_icon="🎓", layout="wide")
+render_sidebar("E-Learning", "Administra cursos y usuarios, y analiza el riesgo de deserción.")
 
 
 # =====================================================================
@@ -91,7 +93,7 @@ inicializar_datos_demo()
 st.title("🎓 Plataforma E-Learning: Gestión Integral y Analítica Predictiva")
 
 tab_cursos, tab_usuarios, tab_pred = st.tabs(
-    ["📋 CRUD de Cursos", "👥 CRUD de Usuarios (Instructores/Alumnos)", "🤖 Predicción de Deserción (ML)"]
+    ["📋 Cursos", "👥 Usuarios (Instructores/Alumnos)", "🤖 Predicción de Deserción"]
 )
 
 # =====================================================================

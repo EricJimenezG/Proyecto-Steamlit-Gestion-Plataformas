@@ -4,8 +4,10 @@ import streamlit as st
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from conexion import get_connection
+from interfaz import render_sidebar
 
-st.set_page_config(page_title="Captación de Clientes | CRUD & ML", page_icon="🎯", layout="wide")
+st.set_page_config(page_title="Captación de Clientes | Predicciones", page_icon="🎯", layout="wide")
+render_sidebar("Captación de Clientes", "Gestiona prospectos y asesores, y estima la probabilidad de cierre.")
 
 
 # =====================================================================
@@ -95,7 +97,7 @@ inicializar_datos_demo()
 st.title("🎯 Captación de Clientes: Gestión Integral y Analítica Predictiva")
 
 tab_prospectos, tab_asesores, tab_pred = st.tabs(
-    ["📋 CRUD de Prospectos", "👔 CRUD de Asesores", "🤖 Predicción de Cierre (ML)"]
+    ["📋 Prospectos", "👔 Asesores", "🤖 Predicción de Cierre"]
 )
 
 # =====================================================================

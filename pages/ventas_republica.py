@@ -5,8 +5,10 @@ import streamlit as st
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from conexion import get_connection
+from interfaz import render_sidebar
 
-st.set_page_config(page_title="Ventas República | CRUD & Predicciones", page_icon="🇲🇽", layout="wide")
+st.set_page_config(page_title="Ventas República | Predicciones", page_icon="🇲🇽", layout="wide")
+render_sidebar("Ventas República", "Gestiona ventas y productos, y proyecta los montos de venta.")
 
 
 # =====================================================================
@@ -121,7 +123,7 @@ inicializar_datos_demo()
 st.title("🇲🇽 Ventas a Nivel República: Gestión Comercial y Proyección de Ingresos")
 
 tab_ventas, tab_productos, tab_pred = st.tabs(
-    ["📋 CRUD de Ventas", "📦 CRUD de Productos", "🤖 Predicción de Monto de Venta (ML)"]
+    ["📋 Ventas", "📦 Productos", "🤖 Predicción de Monto de Venta"]
 )
 
 # =====================================================================

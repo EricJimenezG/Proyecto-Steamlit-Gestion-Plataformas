@@ -4,8 +4,10 @@ import streamlit as st
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from conexion import get_connection
+from interfaz import render_sidebar
 
-st.set_page_config(page_title="Mercado Libre | CRUD & Predicciones", page_icon="🛒", layout="wide")
+st.set_page_config(page_title="Mercado Libre | Predicciones", page_icon="🛒", layout="wide")
+render_sidebar("Mercado Libre", "Administra publicaciones y vendedores, y consulta la predicción de demanda.")
 
 
 # =====================================================================
@@ -102,7 +104,7 @@ inicializar_datos_demo()
 st.title("🛒 Mercado Libre: Gestión Integral y Predicción de Demanda")
 
 tab_pub, tab_vend, tab_pred = st.tabs(
-    ["📋 CRUD de Publicaciones", "🏪 CRUD de Vendedores", "🤖 Predicción de Demanda (ML)"]
+    ["📋 Publicaciones", "🏪 Vendedores", "🤖 Predicción de Demanda"]
 )
 
 # =====================================================================
