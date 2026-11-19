@@ -5,6 +5,7 @@ import streamlit as st
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from conexion import get_connection
+from datos_demo import agregar_registros_demo
 from interfaz import render_sidebar
 
 st.set_page_config(page_title="Ventas República | Predicciones", page_icon="🇲🇽", layout="wide")
@@ -119,6 +120,8 @@ def inicializar_datos_demo():
 
 
 inicializar_datos_demo()
+if agregar_registros_demo("ventas_nivel_republica"):
+    st.cache_data.clear()
 
 st.title("🇲🇽 Ventas a Nivel República: Gestión Comercial y Proyección de Ingresos")
 

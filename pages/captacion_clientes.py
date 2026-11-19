@@ -4,7 +4,9 @@ import streamlit as st
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 from conexion import get_connection
+from datos_demo import agregar_registros_demo
 from interfaz import render_sidebar
+from reglas_negocio import sincronizar_cliente
 
 st.set_page_config(page_title="Captación de Clientes | Predicciones", page_icon="🎯", layout="wide")
 render_sidebar("Captación de Clientes", "Gestiona prospectos y asesores, y estima la probabilidad de cierre.")
@@ -82,17 +84,9 @@ def inicializar_datos_demo():
     con.close()
 
 
-def registrar_cliente_si_convertido(cur: sqlite3.Cursor, id_prospecto: int, empresa: str):
-    """Inserta en `clientes` si el prospecto alcanza el estatus 'convertido'."""
-    tipo = "empresa" if empresa and empresa.strip() else "persona"
-    cur.execute(
-        """INSERT OR IGNORE INTO clientes (id_prospecto, fecha_conversion, tipo_cliente)
-           VALUES (?, date('now'), ?)""",
-        (id_prospecto, tipo),
-    )
-
-
 inicializar_datos_demo()
+if agregar_registros_demo("captacion_clientes"):
+    st.cache_data.clear()
 
 st.title("🎯 Captación de Clientes: Gestión Integral y Analítica Predictiva")
 
@@ -125,7 +119,9 @@ with tab_prospectos:
                COALESCE(cam.nombre, 'Orgánico / Sin campaña') AS Campaña,
                COALESCE(e.nombre || ' ' || e.apellidos, 'Sin asignar') AS Asesor,
                p.estatus AS Estatus,
-               CASE WHEN cl.id_cliente IS NOT NULL THEN 'Sí (ID ' || cl.id_cliente || ')' ELSE 'No' END AS Cliente_Registrado
+               CASE WHEN cl.activo = 1 THEN 'Sí (ID ' || cl.id_cliente || ')'
+                    WHEN cl.id_cliente IS NOT NULL THEN 'Inactivo (ID ' || cl.id_cliente || ')'
+                    ELSE 'No' END AS Cliente_Registrado
         FROM prospectos p
         JOIN canales_captacion c ON p.id_canal = c.id_canal
         LEFT JOIN campanas cam ON p.id_campana = cam.id_campana
@@ -214,8 +210,7 @@ with tab_prospectos:
                         (nombre.strip(), apellidos.strip(), empresa.strip(), id_canal, id_campana, id_emp, estatus),
                     )
                     nuevo_id = cur.lastrowid
-                    if estatus == "convertido":
-                        registrar_cliente_si_convertido(cur, nuevo_id, empresa)
+                    sincronizar_cliente(cur, nuevo_id, estatus, empresa)
 
                     con.commit()
                     st.cache_data.clear()
@@ -252,8 +247,7 @@ with tab_prospectos:
                         "UPDATE prospectos SET empresa = ?, id_empleado = ?, estatus = ? WHERE id_prospecto = ?",
                         (nueva_emp.strip(), nuevo_id_emp, nuevo_est, id_edit),
                     )
-                    if nuevo_est == "convertido":
-                        registrar_cliente_si_convertido(cur, id_edit, nueva_emp)
+                    sincronizar_cliente(cur, id_edit, nuevo_est, nueva_emp)
 
                     con.commit()
                     st.cache_data.clear()

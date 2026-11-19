@@ -4,6 +4,7 @@ import streamlit as st
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import LabelEncoder
 from conexion import get_connection
+from datos_demo import agregar_registros_demo
 from interfaz import render_sidebar
 
 st.set_page_config(page_title="Mercado Libre | Predicciones", page_icon="🛒", layout="wide")
@@ -100,6 +101,8 @@ def inicializar_datos_demo():
 
 
 inicializar_datos_demo()
+if agregar_registros_demo("mercado_libre"):
+    st.cache_data.clear()
 
 st.title("🛒 Mercado Libre: Gestión Integral y Predicción de Demanda")
 
@@ -432,8 +435,7 @@ with tab_vend:
 with tab_pred:
     st.subheader("Simulador de Demanda Estimada por Publicación")
     st.write(
-        "Entrena un regresor **Random Forest** utilizando exclusivamente publicaciones con historial de ventas "
-        "(`INNER JOIN detalle_pedido`) para evitar el sesgo de artículos recién publicados sin ventas."
+        "Entrena un regresor **Random Forest** con publicaciones vendidas y sin ventas registradas."
     )
 
     @st.cache_data
@@ -445,10 +447,10 @@ with tab_pred:
                    p.tipo_publicacion,
                    p.envio_gratis,
                    u.reputacion,
-                   SUM(dp.cantidad) AS unidades_vendidas
+                   COALESCE(SUM(dp.cantidad), 0) AS unidades_vendidas
             FROM publicaciones p
             JOIN usuarios u ON p.id_vendedor = u.id_usuario
-            JOIN detalle_pedido dp ON p.id_publicacion = dp.id_publicacion
+            LEFT JOIN detalle_pedido dp ON p.id_publicacion = dp.id_publicacion
             GROUP BY p.id_publicacion
         """
         df = pd.read_sql(query, con)
