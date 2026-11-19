@@ -21,15 +21,16 @@ def inicializar_datos_demo():
 
     # 1. Usuarios (vendedores con distinta reputación y compradores)
     usuarios = [
-        ("TECH_STORE_MX", "Ricardo", "Salinas", "ventas@techstore.mx", "5510001001", "hash1", "vendedor", 4.9),
-        ("GADGETS_EXPRESS", "Mónica", "Núñez", "monica@gadgets.mx", "5510001002", "hash2", "vendedor", 4.2),
-        ("BAZAR_USADOS", "Tomás", "Aguilar", "tomas@bazar.mx", "5510001003", "hash3", "vendedor", 3.1),
-        ("COMPRADOR_01", "Paola", "Ríos", "paola@mail.com", "5510001004", "hash4", "comprador", 5.0),
-        ("COMPRADOR_02", "Fernando", "Lara", "fer@mail.com", "5510001005", "hash5", "comprador", 4.8),
+        ("TECH_STORE_MX", "Ricardo", "Salinas", "ventas@techstore.mx", "5510001001", "hash1", "vendedor", 4.9, 1),
+        ("GADGETS_EXPRESS", "Mónica", "Núñez", "monica@gadgets.mx", "5510001002", "hash2", "vendedor", 4.2, 1),
+        ("BAZAR_USADOS", "Tomás", "Aguilar", "tomas@bazar.mx", "5510001003", "hash3", "vendedor", 3.1, 1),
+        ("COMPRADOR_01", "Paola", "Ríos", "paola@mail.com", "5510001004", "hash4", "comprador", 5.0, 1),
+        ("COMPRADOR_02", "Fernando", "Lara", "fer@mail.com", "5510001005", "hash5", "comprador", 4.8, 1),
     ]
     cur.executemany(
-        """INSERT INTO usuarios (nickname, nombre, apellidos, correo, telefono, contrasena_hash, tipo_usuario, reputacion)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO usuarios 
+           (nickname, nombre, apellidos, correo, telefono, contrasena_hash, tipo_usuario, reputacion, activo)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         usuarios,
     )
 
@@ -61,16 +62,16 @@ def inicializar_datos_demo():
         publicaciones,
     )
 
-    # 5. Pedidos y Detalle de Pedidos (patrón: premium + envío gratis + alta reputación = más ventas)
+    # 5. Pedidos y Detalle de Pedidos
     pedidos = [
-        (4, 1, "entregado", 4495.0),
-        (5, 1, "entregado", 3294.0),
-        (4, 1, "pagado", 2598.0),
-        (5, 1, "entregado", 1260.0),
-        (4, 1, "entregado", 560.0),
-        (5, 1, "entregado", 1650.0),
-        (4, 1, "pagado", 4200.0),
-        (5, 1, "entregado", 950.0),
+        (4, 1, "entregado", 16182.0),
+        (5, 1, "entregado", 13176.0),
+        (4, 1, "pagado", 15588.0),
+        (5, 1, "entregado", 3780.0),
+        (4, 1, "entregado", 1400.0),
+        (5, 1, "entregado", 4950.0),
+        (4, 1, "pagado", 14700.0),
+        (5, 1, "entregado", 1900.0),
     ]
     cur.executemany(
         "INSERT INTO pedidos (id_comprador, id_direccion_envio, estatus, total) VALUES (?, ?, ?, ?)",
@@ -98,21 +99,25 @@ def inicializar_datos_demo():
 
 inicializar_datos_demo()
 
-st.title("🛒 Mercado Libre: CRUD de Publicaciones y Predicción de Demanda")
-tab_crud, tab_pred = st.tabs(["📋 CRUD de Publicaciones", "🤖 Predicción de Unidades Vendidas (ML)"])
+st.title("🛒 Mercado Libre: Gestión Integral y Predicción de Demanda")
 
-# ---------------------------------------------------------------------
-# PESTAÑA 1: CRUD DE PUBLICACIONES
-# ---------------------------------------------------------------------
-with tab_crud:
+tab_pub, tab_vend, tab_pred = st.tabs(
+    ["📋 CRUD de Publicaciones", "🏪 CRUD de Vendedores", "🤖 Predicción de Demanda (ML)"]
+)
+
+# =====================================================================
+# PESTAÑA 1: CRUD DE PUBLICACIONES + KPIs + GRÁFICAS + EXPORTACIÓN CSV
+# =====================================================================
+with tab_pub:
     con = get_connection("mercado_libre")
+
     df_vendedores = pd.read_sql(
-        "SELECT id_usuario, nickname || ' (Rep: ' || reputacion || ')' AS vendedor FROM usuarios WHERE tipo_usuario IN ('vendedor','ambos')",
+        """SELECT id_usuario, nickname || ' (Rep: ' || reputacion || ')' AS vendedor 
+           FROM usuarios WHERE tipo_usuario IN ('vendedor','ambos') AND activo = 1""",
         con,
     )
     df_categorias = pd.read_sql("SELECT id_categoria, nombre FROM categorias", con)
 
-    st.subheader("Catálogo de Publicaciones Activas")
     df_pub = pd.read_sql(
         """
         SELECT p.id_publicacion AS ID,
@@ -125,19 +130,85 @@ with tab_crud:
                p.condicion AS Condición,
                p.tipo_publicacion AS Tipo,
                p.envio_gratis AS Envío_Gratis,
-               p.estatus AS Estatus
+               p.estatus AS Estatus,
+               COALESCE(SUM(dp.cantidad), 0) AS Unidades_Vendidas
         FROM publicaciones p
         JOIN usuarios u ON p.id_vendedor = u.id_usuario
         JOIN categorias c ON p.id_categoria = c.id_categoria
+        LEFT JOIN detalle_pedido dp ON p.id_publicacion = dp.id_publicacion
+        GROUP BY p.id_publicacion
         ORDER BY p.id_publicacion DESC
         """,
         con,
     )
+
+    # --- KPIs Ejecutivos ---
+    pub_activas = int((df_pub["Estatus"] == "activa").sum()) if not df_pub.empty else 0
+    stock_total = int(df_pub["Stock"].sum()) if not df_pub.empty else 0
+    unidades_totales = int(df_pub["Unidades_Vendidas"].sum()) if not df_pub.empty else 0
+    ingresos_totales = float((df_pub["Precio"] * df_pub["Unidades_Vendidas"]).sum()) if not df_pub.empty else 0.0
+
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Publicaciones Activas", pub_activas)
+    k2.metric("Stock Total Disponible", f"{stock_total} u.")
+    k3.metric("Unidades Vendidas", f"{unidades_totales} u.")
+    k4.metric("Ingresos Históricos", f"${ingresos_totales:,.2f}")
+
+    # --- Gráficas de Distribución ---
+    if not df_pub.empty:
+        g1, g2 = st.columns(2)
+        with g1:
+            st.caption("Publicaciones por Categoría")
+            st.bar_chart(df_pub["Categoría"].value_counts(), height=220)
+        with g2:
+            st.caption("Publicaciones por Nivel de Exposición")
+            st.bar_chart(df_pub["Tipo"].value_counts(), height=220)
+
+    # --- Tabla Principal (READ) + Descarga CSV ---
+    st.subheader("Catálogo General de Publicaciones")
     st.dataframe(df_pub, use_container_width=True, hide_index=True)
+
+    csv_pub = df_pub.to_csv(index=False).encode("utf-8-sig")
+    st.download_button(
+        label="📥 Exportar Catálogo a CSV",
+        data=csv_pub,
+        file_name="reporte_publicaciones_ml.csv",
+        mime="text/csv",
+    )
+
+    # --- Registro Rápido de Venta (para alimentar `detalle_pedido` en vivo) ---
+    with st.expander("💸 Registrar Venta de una Publicación (Alimenta el historial ML)"):
+        if not df_pub.empty:
+            with st.form("form_venta_rapida", clear_on_submit=True):
+                col_v1, col_v2, col_v3 = st.columns([2, 1, 1])
+                opciones_v = {f"{r['ID']} - {r['Título']} (${r['Precio']})": r["ID"] for _, r in df_pub.iterrows()}
+                pub_v_sel = col_v1.selectbox("Publicación vendida", list(opciones_v.keys()))
+                cant_v = col_v2.number_input("Cantidad vendida", min_value=1, value=5, step=1)
+                btn_v = col_v3.form_submit_button("Registrar Pedido", use_container_width=True)
+
+                if btn_v:
+                    id_pub_v = opciones_v[pub_v_sel]
+                    precio_v = float(df_pub.loc[df_pub["ID"] == id_pub_v, "Precio"].values[0])
+                    total_v = precio_v * cant_v
+                    cur = con.cursor()
+                    cur.execute(
+                        "INSERT INTO pedidos (id_comprador, id_direccion_envio, estatus, total) VALUES (4, 1, 'entregado', ?)",
+                        (total_v,),
+                    )
+                    id_ped = cur.lastrowid
+                    cur.execute(
+                        "INSERT INTO detalle_pedido (id_pedido, id_publicacion, cantidad, precio_unitario) VALUES (?, ?, ?, ?)",
+                        (id_ped, id_pub_v, cant_v, precio_v),
+                    )
+                    con.commit()
+                    st.cache_data.clear()
+                    st.success(f"Venta registrada (+{cant_v} unidades). Modelo predictivo actualizado.")
+                    st.rerun()
 
     st.divider()
     col_c, col_u, col_d = st.columns(3)
 
+    # --- CREATE PUBLICACIÓN ---
     with col_c:
         st.subheader("➕ Nueva Publicación")
         with st.form("form_crear_pub", clear_on_submit=True):
@@ -153,6 +224,8 @@ with tab_crud:
             if st.form_submit_button("Publicar Artículo", use_container_width=True):
                 if not titulo.strip():
                     st.error("El título es obligatorio.")
+                elif df_vendedores.empty:
+                    st.error("No hay vendedores activos disponibles.")
                 else:
                     id_vend = int(df_vendedores.loc[df_vendedores["vendedor"] == vend_sel, "id_usuario"].values[0])
                     id_cat = int(df_categorias.loc[df_categorias["nombre"] == cat_sel, "id_categoria"].values[0])
@@ -168,6 +241,7 @@ with tab_crud:
                     st.success("Publicación creada.")
                     st.rerun()
 
+    # --- UPDATE PUBLICACIÓN ---
     with col_u:
         st.subheader("✏️ Editar Publicación")
         if not df_pub.empty:
@@ -198,6 +272,7 @@ with tab_crud:
                     st.success("Publicación actualizada.")
                     st.rerun()
 
+    # --- DELETE PUBLICACIÓN ---
     with col_d:
         st.subheader("🗑️ Eliminar Publicación")
         if not df_pub.empty:
@@ -219,14 +294,144 @@ with tab_crud:
 
     con.close()
 
-# ---------------------------------------------------------------------
-# PESTAÑA 2: MODELO PREDICTIVO (REGRESIÓN DE UNIDADES VENDIDAS)
-# ---------------------------------------------------------------------
+
+# =====================================================================
+# PESTAÑA 2: CRUD DE VENDEDORES (TABLA `usuarios`)
+# =====================================================================
+with tab_vend:
+    con = get_connection("mercado_libre")
+
+    st.subheader("Directorio de Vendedores y Reputación")
+    df_vend_full = pd.read_sql(
+        """
+        SELECT u.id_usuario AS ID,
+               u.nickname AS Nickname,
+               u.nombre AS Nombre,
+               u.apellidos AS Apellidos,
+               u.correo AS Correo,
+               COALESCE(u.telefono, '') AS Teléfono,
+               u.tipo_usuario AS Rol,
+               u.reputacion AS Reputación,
+               CASE WHEN u.activo = 1 THEN 'Activo' ELSE 'Inactivo' END AS Estado,
+               COUNT(DISTINCT p.id_publicacion) AS Publicaciones,
+               COALESCE(SUM(dp.cantidad), 0) AS Unidades_Vendidas
+        FROM usuarios u
+        LEFT JOIN publicaciones p ON u.id_usuario = p.id_vendedor
+        LEFT JOIN detalle_pedido dp ON p.id_publicacion = dp.id_publicacion
+        WHERE u.tipo_usuario IN ('vendedor', 'ambos')
+        GROUP BY u.id_usuario
+        ORDER BY u.reputacion DESC
+        """,
+        con,
+    )
+    st.dataframe(df_vend_full, use_container_width=True, hide_index=True)
+
+    st.divider()
+    col_vc, col_vu, col_vd = st.columns(3)
+
+    # --- CREATE VENDEDOR ---
+    with col_vc:
+        st.subheader("➕ Nuevo Vendedor")
+        with st.form("form_crear_vendedor", clear_on_submit=True):
+            v_nick = st.text_input("Nickname único*")
+            v_nom = st.text_input("Nombre*")
+            v_ape = st.text_input("Apellidos*")
+            v_correo = st.text_input("Correo electrónico*")
+            v_tel = st.text_input("Teléfono")
+            v_rol = st.selectbox("Tipo de cuenta", ["vendedor", "ambos"])
+            v_rep = st.slider("Reputación inicial (0.0 - 5.0)", 0.0, 5.0, 4.5, step=0.1)
+            v_activo = st.checkbox("Cuenta activa", value=True)
+
+            if st.form_submit_button("Registrar Vendedor", use_container_width=True):
+                if not v_nick.strip() or not v_nom.strip() or not v_ape.strip() or not v_correo.strip():
+                    st.error("Nickname, nombre, apellidos y correo son obligatorios.")
+                else:
+                    try:
+                        cur = con.cursor()
+                        cur.execute(
+                            """INSERT INTO usuarios 
+                               (nickname, nombre, apellidos, correo, telefono, contrasena_hash, tipo_usuario, reputacion, activo)
+                               VALUES (?, ?, ?, ?, ?, 'hash_demo', ?, ?, ?)""",
+                            (
+                                v_nick.strip().upper(),
+                                v_nom.strip(),
+                                v_ape.strip(),
+                                v_correo.strip(),
+                                v_tel.strip(),
+                                v_rol,
+                                v_rep,
+                                int(v_activo),
+                            ),
+                        )
+                        con.commit()
+                        st.success("Vendedor registrado.")
+                        st.rerun()
+                    except sqlite3.IntegrityError:
+                        st.error("El nickname o correo ya existe en la base de datos.")
+
+    # --- UPDATE VENDEDOR ---
+    with col_vu:
+        st.subheader("✏️ Editar Reputación / Datos")
+        if not df_vend_full.empty:
+            opc_v = {f"{r['ID']} - {r['Nickname']}": r["ID"] for _, r in df_vend_full.iterrows()}
+            sel_v = st.selectbox("Selecciona vendedor", list(opc_v.keys()))
+            id_v_edit = opc_v[sel_v]
+            vend_act = df_vend_full[df_vend_full["ID"] == id_v_edit].iloc[0]
+
+            with st.form("form_editar_vendedor"):
+                edit_v_tel = st.text_input("Teléfono", value=vend_act["Teléfono"])
+                roles = ["vendedor", "ambos"]
+                idx_r = roles.index(vend_act["Rol"]) if vend_act["Rol"] in roles else 0
+                edit_v_rol = st.selectbox("Tipo de cuenta", roles, index=idx_r)
+                edit_v_rep = st.slider(
+                    "Reputación (0.0 - 5.0)", 0.0, 5.0, float(vend_act["Reputación"]), step=0.1
+                )
+                edit_v_act = st.checkbox("Cuenta activa", value=(vend_act["Estado"] == "Activo"))
+
+                if st.form_submit_button("Actualizar Vendedor", use_container_width=True):
+                    cur = con.cursor()
+                    cur.execute(
+                        """UPDATE usuarios 
+                           SET telefono = ?, tipo_usuario = ?, reputacion = ?, activo = ?
+                           WHERE id_usuario = ?""",
+                        (edit_v_tel.strip(), edit_v_rol, edit_v_rep, int(edit_v_act), id_v_edit),
+                    )
+                    con.commit()
+                    st.cache_data.clear()
+                    st.success("Vendedor actualizado (reputación sincronizada con el modelo ML).")
+                    st.rerun()
+
+    # --- DELETE VENDEDOR ---
+    with col_vd:
+        st.subheader("🗑️ Eliminar Vendedor")
+        if not df_vend_full.empty:
+            opc_vdel = {f"{r['ID']} - {r['Nickname']}": r["ID"] for _, r in df_vend_full.iterrows()}
+            sel_vdel = st.selectbox("Vendedor a eliminar", list(opc_vdel.keys()))
+            id_v_del = opc_vdel[sel_vdel]
+
+            st.caption("Nota: SQLite bloqueará el borrado si el vendedor tiene publicaciones registradas.")
+            if st.button("Eliminar Vendedor", type="primary", use_container_width=True):
+                try:
+                    cur = con.cursor()
+                    cur.execute("DELETE FROM usuarios WHERE id_usuario = ?", (id_v_del,))
+                    con.commit()
+                    st.cache_data.clear()
+                    st.success("Vendedor eliminado.")
+                    st.rerun()
+                except sqlite3.IntegrityError:
+                    st.error("No se puede eliminar: este vendedor aún tiene publicaciones vinculadas.")
+
+    con.close()
+
+
+# =====================================================================
+# PESTAÑA 3: MODELO PREDICTIVO CON EXPLICABILIDAD (REGRESIÓN)
+# =====================================================================
 with tab_pred:
     st.subheader("Simulador de Demanda Estimada por Publicación")
     st.write(
-        "Entrena un regresor **Random Forest** cruzando `publicaciones`, `usuarios` y `detalle_pedido` "
-        "para estimar cuántas unidades se venderán según la configuración del anuncio."
+        "Entrena un regresor **Random Forest** utilizando exclusivamente publicaciones con historial de ventas "
+        "(`INNER JOIN detalle_pedido`) para evitar el sesgo de artículos recién publicados sin ventas."
     )
 
     @st.cache_data
@@ -238,10 +443,10 @@ with tab_pred:
                    p.tipo_publicacion,
                    p.envio_gratis,
                    u.reputacion,
-                   COALESCE(SUM(dp.cantidad), 0) AS unidades_vendidas
+                   SUM(dp.cantidad) AS unidades_vendidas
             FROM publicaciones p
             JOIN usuarios u ON p.id_vendedor = u.id_usuario
-            LEFT JOIN detalle_pedido dp ON p.id_publicacion = dp.id_publicacion
+            JOIN detalle_pedido dp ON p.id_publicacion = dp.id_publicacion
             GROUP BY p.id_publicacion
         """
         df = pd.read_sql(query, con)
@@ -251,7 +456,7 @@ with tab_pred:
     df_ml = cargar_dataset_ml()
 
     if len(df_ml) < 4:
-        st.warning("Se necesitan al menos 4 publicaciones registradas para entrenar el modelo de regresión.")
+        st.warning("Se necesitan al menos 4 publicaciones con ventas registradas para entrenar el modelo de regresión.")
     else:
         le_cond = LabelEncoder()
         le_tipo = LabelEncoder()
@@ -296,9 +501,31 @@ with tab_pred:
                 st.metric("Demanda Estimada", f"{pred_unidades:.1f} unidades")
                 st.metric("Ingreso Bruto Proyectado", f"${ingreso_estimado:,.2f} MXN")
 
-                with st.expander("Ver matriz histórica de entrenamiento"):
-                    st.dataframe(
-                        df_ml[["precio", "condicion", "tipo_publicacion", "envio_gratis", "reputacion", "unidades_vendidas"]],
-                        use_container_width=True,
-                    )
+                if in_tipo == "premium" and in_envio:
+                    st.success("✅ Configuración óptima: máxima exposición + envío gratis impulsan la conversión.")
+                elif not in_envio:
+                    st.info("💡 Tip: Activar el envío gratis suele incrementar el volumen estimado en productos nuevos.")
 
+        st.divider()
+        exp1, exp2 = st.columns(2)
+
+        with exp1:
+            st.markdown("#### Importancia de Variables en el Modelo")
+            df_imp = pd.DataFrame(
+                {
+                    "Variable": ["Precio", "Condición", "Tipo Publicación", "Envío Gratis", "Reputación Vendedor"],
+                    "Importancia": modelo.feature_importances_,
+                }
+            ).set_index("Variable")
+            st.bar_chart(df_imp, height=230)
+
+        with exp2:
+            st.markdown("#### Desempeño Histórico por Tipo y Envío")
+            resumen_hist = (
+                df_ml.groupby(["tipo_publicacion", "envio_gratis"])["unidades_vendidas"]
+                .agg(Publicaciones="count", Promedio_Unidades="mean")
+                .reset_index()
+            )
+            resumen_hist["envio_gratis"] = resumen_hist["envio_gratis"].map({1: "Sí", 0: "No"})
+            resumen_hist["Promedio_Unidades"] = resumen_hist["Promedio_Unidades"].round(1)
+            st.dataframe(resumen_hist, use_container_width=True, hide_index=True)

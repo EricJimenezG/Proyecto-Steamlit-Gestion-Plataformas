@@ -45,38 +45,46 @@ def inicializar_datos_demo():
     )
 
     empleados = [
-        (1, "Alejandro", "Garza", "a.garza@empresa.mx", "vendedor", "2025-01-15"),
-        (2, "Beatriz", "Soto", "b.soto@empresa.mx", "vendedor", "2025-03-10"),
-        (3, "César", "Vázquez", "c.vazquez@empresa.mx", "gerente", "2024-11-01"),
-        (4, "Diana", "Pech", "d.pech@empresa.mx", "vendedor", "2025-06-20"),
+        (1, "Alejandro", "Garza", "a.garza@empresa.mx", "vendedor", "2025-01-15", 1),
+        (2, "Beatriz", "Soto", "b.soto@empresa.mx", "vendedor", "2025-03-10", 1),
+        (3, "César", "Vázquez", "c.vazquez@empresa.mx", "gerente", "2024-11-01", 1),
+        (4, "Diana", "Pech", "d.pech@empresa.mx", "vendedor", "2025-06-20", 1),
     ]
     cur.executemany(
-        "INSERT INTO empleados (id_sucursal, nombre, apellidos, correo, puesto, fecha_contratacion) VALUES (?, ?, ?, ?, ?, ?)",
+        """INSERT INTO empleados (id_sucursal, nombre, apellidos, correo, puesto, fecha_contratacion, activo) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
         empleados,
     )
 
     # 3. Categorías y Productos
-    cur.execute("INSERT INTO categorias (nombre) VALUES ('Equipamiento Industrial')")
+    categorias = [("Herramienta Eléctrica",), ("Herramienta Manual",), ("Equipos Neumáticos",)]
+    cur.executemany("INSERT INTO categorias (nombre) VALUES (?)", categorias)
+
     productos = [
-        ("SKU-001", "Taladro Percutor 1/2 Pulgada", 1, 1850.0, 1100.0),
-        ("SKU-002", "Juego de Llaves Mixtas 14 Pzas", 1, 650.0, 380.0),
-        ("SKU-003", "Compresor de Aire 25L", 1, 3400.0, 2150.0),
+        ("SKU-001", "Taladro Percutor 1/2 Pulgada", 1, 1850.0, 1100.0, 1),
+        ("SKU-002", "Juego de Llaves Mixtas 14 Pzas", 2, 650.0, 380.0, 1),
+        ("SKU-003", "Compresor de Aire 25L", 3, 3400.0, 2150.0, 1),
+        ("SKU-004", "Esmeriladora Angular 4-1/2", 1, 1250.0, 740.0, 1),
     ]
     cur.executemany(
-        "INSERT INTO productos (sku, nombre, id_categoria, precio_unitario, costo) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO productos (sku, nombre, id_categoria, precio_unitario, costo, activo) VALUES (?, ?, ?, ?, ?, ?)",
         productos,
     )
 
-    # 4. Ventas históricas y Detalles (distintas zonas, meses, métodos y cantidades)
+    # 4. Ventas históricas y Detalles (12 tickets distribuidos en las 4 zonas y distintos meses)
     ventas = [
-        ("VTA-1001", 1, 1, "2026-03-12 10:30:00", "tarjeta_credito", 9250.0, 1480.0, 10730.0, "completada"),
-        ("VTA-1002", 2, 2, "2026-04-18 14:15:00", "transferencia", 13600.0, 2176.0, 15776.0, "completada"),
-        ("VTA-1003", 3, 3, "2026-05-22 11:00:00", "tarjeta_debito", 3900.0, 624.0, 4524.0, "completada"),
-        ("VTA-1004", 4, 4, "2026-06-05 16:45:00", "efectivo", 1950.0, 312.0, 2262.0, "completada"),
-        ("VTA-1005", 1, 1, "2026-08-14 12:20:00", "transferencia", 17000.0, 2720.0, 19720.0, "completada"),
-        ("VTA-1006", 2, 2, "2026-09-25 17:10:00", "tarjeta_credito", 7400.0, 1184.0, 8584.0, "completada"),
-        ("VTA-1007", 3, 3, "2026-10-09 09:50:00", "efectivo", 2600.0, 416.0, 3016.0, "completada"),
-        ("VTA-1008", 4, 4, "2026-11-11 15:30:00", "tarjeta_debito", 5550.0, 888.0, 6438.0, "completada"),
+        ("VTA-1001", 1, 1, "2026-02-12 10:30:00", "tarjeta_credito", 9250.0, 1480.0, 10730.0, "completada"),
+        ("VTA-1002", 2, 2, "2026-03-18 14:15:00", "transferencia", 13600.0, 2176.0, 15776.0, "completada"),
+        ("VTA-1003", 3, 3, "2026-04-22 11:00:00", "tarjeta_debito", 3900.0, 624.0, 4524.0, "completada"),
+        ("VTA-1004", 4, 4, "2026-05-05 16:45:00", "efectivo", 1950.0, 312.0, 2262.0, "completada"),
+        ("VTA-1005", 1, 1, "2026-06-14 12:20:00", "transferencia", 17000.0, 2720.0, 19720.0, "completada"),
+        ("VTA-1006", 2, 2, "2026-07-25 17:10:00", "tarjeta_credito", 7400.0, 1184.0, 8584.0, "completada"),
+        ("VTA-1007", 3, 3, "2026-08-09 09:50:00", "efectivo", 2600.0, 416.0, 3016.0, "completada"),
+        ("VTA-1008", 4, 4, "2026-09-11 15:30:00", "tarjeta_debito", 5550.0, 888.0, 6438.0, "completada"),
+        ("VTA-1009", 1, 1, "2026-10-03 11:40:00", "transferencia", 20400.0, 3264.0, 23664.0, "completada"),
+        ("VTA-1010", 2, 2, "2026-10-21 13:15:00", "tarjeta_credito", 11100.0, 1776.0, 12876.0, "completada"),
+        ("VTA-1011", 3, 3, "2026-11-04 10:05:00", "tarjeta_debito", 6250.0, 1000.0, 7250.0, "completada"),
+        ("VTA-1012", 4, 4, "2026-11-15 18:20:00", "efectivo", 3750.0, 600.0, 4350.0, "completada"),
     ]
     cur.executemany(
         """INSERT INTO ventas 
@@ -94,6 +102,10 @@ def inicializar_datos_demo():
         (6, 1, 4, 1850.0, 0),
         (7, 2, 4, 650.0, 0),
         (8, 1, 3, 1850.0, 0),
+        (9, 3, 6, 3400.0, 0),
+        (10, 1, 6, 1850.0, 0),
+        (11, 4, 5, 1250.0, 0),
+        (12, 4, 3, 1250.0, 0),
     ]
     cur.executemany(
         "INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio_unitario, descuento) VALUES (?, ?, ?, ?, ?)",
@@ -106,74 +118,124 @@ def inicializar_datos_demo():
 
 inicializar_datos_demo()
 
-st.title("🇲🇽 Ventas a Nivel República: CRUD y Proyección de Ingresos")
-tab_crud, tab_pred = st.tabs(["📋 CRUD de Ventas", "🤖 Predicción de Monto de Venta (ML)"])
+st.title("🇲🇽 Ventas a Nivel República: Gestión Comercial y Proyección de Ingresos")
 
-# ---------------------------------------------------------------------
-# PESTAÑA 1: CRUD DE VENTAS (CON DETALLE EN CASCADA)
-# ---------------------------------------------------------------------
-with tab_crud:
+tab_ventas, tab_productos, tab_pred = st.tabs(
+    ["📋 CRUD de Ventas", "📦 CRUD de Productos", "🤖 Predicción de Monto de Venta (ML)"]
+)
+
+# =====================================================================
+# PESTAÑA 1: CRUD DE VENTAS + KPIs + GRÁFICAS + EXPORTACIÓN CSV
+# =====================================================================
+with tab_ventas:
     con = get_connection("ventas_nivel_republica")
+
     df_suc = pd.read_sql(
         """SELECT s.id_sucursal, s.nombre || ' (' || z.nombre || ')' AS sucursal
            FROM sucursales s
            JOIN estados e ON s.id_estado = e.id_estado
-           JOIN zonas z ON e.id_zona = z.id_zona""",
+           JOIN zonas z ON e.id_zona = z.id_zona
+           WHERE s.activa = 1""",
         con,
     )
-    df_emp = pd.read_sql("SELECT id_empleado, nombre || ' ' || apellidos AS empleado FROM empleados", con)
-    df_prod = pd.read_sql("SELECT id_producto, nombre, precio_unitario FROM productos", con)
+    df_emp = pd.read_sql(
+        "SELECT id_empleado, nombre || ' ' || apellidos AS empleado FROM empleados WHERE activo = 1", con
+    )
+    df_prod = pd.read_sql(
+        "SELECT id_producto, sku || ' - ' || nombre AS prod_label, precio_unitario FROM productos WHERE activo = 1",
+        con,
+    )
 
-    st.subheader("Registro Histórico de Ventas")
     df_ventas = pd.read_sql(
         """
         SELECT v.id_venta AS ID,
                v.folio AS Folio,
                z.nombre AS Zona,
                s.nombre AS Sucursal,
+               e_v.nombre || ' ' || e_v.apellidos AS Vendedor,
                v.fecha_venta AS Fecha,
                v.metodo_pago AS Método_Pago,
                COALESCE(SUM(dv.cantidad), 0) AS Artículos,
+               v.subtotal AS Subtotal,
+               v.iva AS IVA,
                v.total AS Total_MXN,
                v.estatus AS Estatus
         FROM ventas v
         JOIN sucursales s ON v.id_sucursal = s.id_sucursal
-        JOIN estados e ON s.id_estado = e.id_estado
-        JOIN zonas z ON e.id_zona = z.id_zona
+        JOIN estados est ON s.id_estado = est.id_estado
+        JOIN zonas z ON est.id_zona = z.id_zona
+        JOIN empleados e_v ON v.id_empleado = e_v.id_empleado
         LEFT JOIN detalle_venta dv ON v.id_venta = dv.id_venta
         GROUP BY v.id_venta
         ORDER BY v.id_venta DESC
         """,
         con,
     )
+
+    # --- KPIs Ejecutivos ---
+    df_comp = df_ventas[df_ventas["Estatus"] == "completada"] if not df_ventas.empty else pd.DataFrame()
+    num_ventas = len(df_comp)
+    ingresos_tot = float(df_comp["Total_MXN"].sum()) if not df_comp.empty else 0.0
+    ticket_prom = float(df_comp["Total_MXN"].mean()) if not df_comp.empty else 0.0
+    articulos_tot = int(df_comp["Artículos"].sum()) if not df_comp.empty else 0
+
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Ventas Completadas", num_ventas)
+    k2.metric("Ingresos Totales", f"${ingresos_tot:,.2f}")
+    k3.metric("Ticket Promedio", f"${ticket_prom:,.2f}")
+    k4.metric("Unidades Despachadas", f"{articulos_tot} u.")
+
+    # --- Gráficas por Zona y Método de Pago ---
+    if not df_comp.empty:
+        g1, g2 = st.columns(2)
+        with g1:
+            st.caption("Ingresos Totales por Zona Geográfica (MXN)")
+            st.bar_chart(df_comp.groupby("Zona")["Total_MXN"].sum(), height=220)
+        with g2:
+            st.caption("Operaciones por Método de Pago")
+            st.bar_chart(df_comp["Método_Pago"].value_counts(), height=220)
+
+    # --- Tabla Principal (READ) + Descarga CSV ---
+    st.subheader("Registro Histórico de Ventas")
     st.dataframe(df_ventas, use_container_width=True, hide_index=True)
+
+    csv_ventas = df_ventas.to_csv(index=False).encode("utf-8-sig")
+    st.download_button(
+        label="📥 Exportar Reporte de Ventas a CSV",
+        data=csv_ventas,
+        file_name="reporte_ventas_republica.csv",
+        mime="text/csv",
+    )
 
     st.divider()
     col_c, col_u, col_d = st.columns(3)
 
+    # --- CREATE VENTA ---
     with col_c:
         st.subheader("➕ Registrar Venta")
         with st.form("form_crear_venta", clear_on_submit=True):
-            folio = st.text_input("Folio único*", value=f"VTA-{1009 + len(df_ventas)}")
+            folio = st.text_input("Folio único*", value=f"VTA-{1001 + len(df_ventas)}")
             suc_sel = st.selectbox("Sucursal", df_suc["sucursal"])
             emp_sel = st.selectbox("Vendedor", df_emp["empleado"])
-            prod_sel = st.selectbox("Producto vendido", df_prod["nombre"])
-            cantidad = st.number_input("Cantidad de unidades", min_value=1, value=2, step=1)
+            prod_sel = st.selectbox("Producto vendido", df_prod["prod_label"])
+            cantidad = st.number_input("Cantidad de unidades", min_value=1, value=3, step=1)
             metodo = st.selectbox("Método de pago", ["efectivo", "tarjeta_credito", "tarjeta_debito", "transferencia"])
             fecha_input = st.date_input("Fecha de venta", value=datetime.now())
 
             if st.form_submit_button("Guardar Ticket de Venta", use_container_width=True):
                 if not folio.strip():
                     st.error("El folio es obligatorio.")
+                elif df_prod.empty:
+                    st.error("No hay productos activos disponibles.")
                 else:
                     try:
                         id_suc = int(df_suc.loc[df_suc["sucursal"] == suc_sel, "id_sucursal"].values[0])
                         id_emp = int(df_emp.loc[df_emp["empleado"] == emp_sel, "id_empleado"].values[0])
-                        fila_prod = df_prod[df_prod["nombre"] == prod_sel].iloc[0]
+                        fila_prod = df_prod[df_prod["prod_label"] == prod_sel].iloc[0]
                         id_prod = int(fila_prod["id_producto"])
                         precio_u = float(fila_prod["precio_unitario"])
 
-                        subtotal = precio_u * cantidad
+                        subtotal = round(precio_u * cantidad, 2)
                         iva = round(subtotal * 0.16, 2)
                         total = round(subtotal + iva, 2)
                         fecha_str = f"{fecha_input.strftime('%Y-%m-%d')} 12:00:00"
@@ -183,7 +245,7 @@ with tab_crud:
                             """INSERT INTO ventas 
                                (folio, id_sucursal, id_empleado, fecha_venta, metodo_pago, subtotal, iva, total, estatus)
                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'completada')""",
-                            (folio.strip(), id_suc, id_emp, fecha_str, metodo, subtotal, iva, total),
+                            (folio.strip().upper(), id_suc, id_emp, fecha_str, metodo, subtotal, iva, total),
                         )
                         id_nueva_venta = cur.lastrowid
                         cur.execute(
@@ -193,11 +255,12 @@ with tab_crud:
                         )
                         con.commit()
                         st.cache_data.clear()
-                        st.success(f"Venta {folio} registrada por ${total:,.2f} MXN.")
+                        st.success(f"Venta {folio.upper()} registrada por ${total:,.2f} MXN.")
                         st.rerun()
                     except sqlite3.IntegrityError:
                         st.error("El folio ya existe. Usa un folio único.")
 
+    # --- UPDATE VENTA ---
     with col_u:
         st.subheader("✏️ Actualizar Venta")
         if not df_ventas.empty:
@@ -223,6 +286,7 @@ with tab_crud:
                     st.success("Venta actualizada.")
                     st.rerun()
 
+    # --- DELETE VENTA ---
     with col_d:
         st.subheader("🗑️ Eliminar Venta")
         if not df_ventas.empty:
@@ -241,9 +305,121 @@ with tab_crud:
 
     con.close()
 
-# ---------------------------------------------------------------------
-# PESTAÑA 2: MODELO PREDICTIVO (PROYECCIÓN DE TOTAL DE VENTA)
-# ---------------------------------------------------------------------
+
+# =====================================================================
+# PESTAÑA 2: CRUD DE PRODUCTOS (CATÁLOGO Y MÁRGENES)
+# =====================================================================
+with tab_productos:
+    con = get_connection("ventas_nivel_republica")
+    df_cats = pd.read_sql("SELECT id_categoria, nombre FROM categorias", con)
+
+    st.subheader("Catálogo de Productos")
+    df_productos = pd.read_sql(
+        """
+        SELECT p.id_producto AS ID,
+               p.sku AS SKU,
+               p.nombre AS Producto,
+               c.nombre AS Categoría,
+               p.precio_unitario AS Precio_Venta,
+               p.costo AS Costo,
+               ROUND(p.precio_unitario - p.costo, 2) AS Utilidad_Unitaria,
+               CASE WHEN p.activo = 1 THEN 'Activo' ELSE 'Inactivo' END AS Estado,
+               COALESCE(SUM(dv.cantidad), 0) AS Unidades_Vendidas
+        FROM productos p
+        JOIN categorias c ON p.id_categoria = c.id_categoria
+        LEFT JOIN detalle_venta dv ON p.id_producto = dv.id_producto
+        GROUP BY p.id_producto
+        ORDER BY p.id_producto ASC
+        """,
+        con,
+    )
+    st.dataframe(df_productos, use_container_width=True, hide_index=True)
+
+    st.divider()
+    col_pc, col_pu, col_pd = st.columns(3)
+
+    # --- CREATE PRODUCTO ---
+    with col_pc:
+        st.subheader("➕ Nuevo Producto")
+        with st.form("form_crear_prod", clear_on_submit=True):
+            p_sku = st.text_input("SKU único*", value=f"SKU-00{len(df_productos) + 1}")
+            p_nom = st.text_input("Nombre del producto*")
+            p_cat = st.selectbox("Categoría", df_cats["nombre"])
+            p_precio = st.number_input("Precio unitario ($ MXN)", min_value=1.0, value=950.0, step=50.0)
+            p_costo = st.number_input("Costo ($ MXN)", min_value=0.0, value=550.0, step=50.0)
+            p_act = st.checkbox("Producto activo", value=True)
+
+            if st.form_submit_button("Registrar Producto", use_container_width=True):
+                if not p_sku.strip() or not p_nom.strip():
+                    st.error("SKU y nombre son obligatorios.")
+                else:
+                    try:
+                        id_cat = int(df_cats.loc[df_cats["nombre"] == p_cat, "id_categoria"].values[0])
+                        cur = con.cursor()
+                        cur.execute(
+                            """INSERT INTO productos (sku, nombre, id_categoria, precio_unitario, costo, activo)
+                               VALUES (?, ?, ?, ?, ?, ?)""",
+                            (p_sku.strip().upper(), p_nom.strip(), id_cat, p_precio, p_costo, int(p_act)),
+                        )
+                        con.commit()
+                        st.success("Producto agregado al catálogo.")
+                        st.rerun()
+                    except sqlite3.IntegrityError:
+                        st.error("El SKU ya existe. Ingresa un código distinto.")
+
+    # --- UPDATE PRODUCTO ---
+    with col_pu:
+        st.subheader("✏️ Editar Precios / Estado")
+        if not df_productos.empty:
+            opc_p = {f"{r['ID']} - {r['SKU']} ({r['Producto']})": r["ID"] for _, r in df_productos.iterrows()}
+            sel_p = st.selectbox("Selecciona producto", list(opc_p.keys()))
+            id_p_edit = opc_p[sel_p]
+            prod_act = df_productos[df_productos["ID"] == id_p_edit].iloc[0]
+
+            with st.form("form_editar_prod"):
+                edit_precio = st.number_input(
+                    "Precio de venta ($)", min_value=1.0, value=float(prod_act["Precio_Venta"]), step=50.0
+                )
+                edit_costo = st.number_input(
+                    "Costo ($)", min_value=0.0, value=float(prod_act["Costo"]), step=50.0
+                )
+                edit_p_act = st.checkbox("Activo para venta", value=(prod_act["Estado"] == "Activo"))
+
+                if st.form_submit_button("Guardar Cambios", use_container_width=True):
+                    cur = con.cursor()
+                    cur.execute(
+                        "UPDATE productos SET precio_unitario = ?, costo = ?, activo = ? WHERE id_producto = ?",
+                        (edit_precio, edit_costo, int(edit_p_act), id_p_edit),
+                    )
+                    con.commit()
+                    st.success("Producto actualizado.")
+                    st.rerun()
+
+    # --- DELETE PRODUCTO ---
+    with col_pd:
+        st.subheader("🗑️ Eliminar Producto")
+        if not df_productos.empty:
+            opc_pdel = {f"{r['ID']} - {r['SKU']} ({r['Producto']})": r["ID"] for _, r in df_productos.iterrows()}
+            sel_pdel = st.selectbox("Producto a eliminar", list(opc_pdel.keys()))
+            id_p_del = opc_pdel[sel_pdel]
+
+            st.caption("Nota: SQLite bloqueará el borrado si el producto ya forma parte de tickets vendidos.")
+            if st.button("Eliminar Producto", type="primary", use_container_width=True):
+                try:
+                    cur = con.cursor()
+                    cur.execute("DELETE FROM productos WHERE id_producto = ?", (id_p_del,))
+                    con.commit()
+                    st.success("Producto eliminado.")
+                    st.rerun()
+                except sqlite3.IntegrityError:
+                    st.error("No se puede eliminar: existen registros en `detalle_venta` vinculados a este producto.")
+
+    con.close()
+
+
+# =====================================================================
+# PESTAÑA 3: MODELO PREDICTIVO CON EXPLICABILIDAD (REGRESIÓN)
+# =====================================================================
 with tab_pred:
     st.subheader("Simulador de Proyección de Ticket de Venta")
     st.write(
@@ -317,8 +493,27 @@ with tab_pred:
                 st.metric("Monto Total Estimado", f"${monto_predicho:,.2f} MXN")
                 st.info(f"Proyección calculada para la zona **{in_zona}** con pago vía **{in_metodo}**.")
 
-                with st.expander("Ver registros históricos usados para entrenar"):
-                    st.dataframe(
-                        df_ml[["zona", "metodo_pago", "total_articulos", "mes", "total"]],
-                        use_container_width=True,
-                    )
+        st.divider()
+        exp1, exp2 = st.columns(2)
+
+        with exp1:
+            st.markdown("#### Importancia de Variables en el Modelo")
+            df_imp = pd.DataFrame(
+                {
+                    "Variable": ["Zona Geográfica", "Método de Pago", "Cantidad de Artículos", "Mes de Venta"],
+                    "Importancia": modelo.feature_importances_,
+                }
+            ).set_index("Variable")
+            st.bar_chart(df_imp, height=230)
+
+        with exp2:
+            st.markdown("#### Desempeño Histórico por Zona")
+            resumen_zona = (
+                df_ml.groupby("zona")["total"]
+                .agg(Tickets="count", Ticket_Promedio="mean", Ingreso_Total="sum")
+                .reset_index()
+            )
+            resumen_zona["Ticket_Promedio"] = resumen_zona["Ticket_Promedio"].round(2)
+            resumen_zona["Ingreso_Total"] = resumen_zona["Ingreso_Total"].round(2)
+            st.dataframe(resumen_zona, use_container_width=True, hide_index=True)
+
